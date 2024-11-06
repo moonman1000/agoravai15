@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastrear Pedido</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: calc(100vh - 60px); }
+        #status { height: 60px; padding: 10px; background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="status"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var map, marcadorMotorista;
+        var statusElement = document.getElementById('status');
+
+        function inicializarMapa(lat, lng) {
+            map = L.map('map').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            marcadorMotorista = L.marker([lat, lng]).addTo(map);
+        }
+
+        socket.on('atualizacaoLocalizacao', function(data) {
+            if (!map) {
+                inicializarMapa(data.lat, data.lng);
+            } else {
+                marcadorMotorista.setLatLng([data.lat, data.lng]);
+                map.panTo([data.lat, data.lng]);
+            }
+            statusElement.textContent = `Localização do motorista: ${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
+        });
+
+        socket.on('connect', () => {
+            statusElement.textContent = "Conectado ao servidor. Aguardando atualizações de localização...";
+        });
+
+        socket.on('disconnect', () => {
+            statusElement.textContent = "Desconectado do servidor. Tentando reconectar...";
+        });
+    </script>
+</body>
+</html>
+
+

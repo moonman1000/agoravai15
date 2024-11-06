@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rastrear Pedido</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.css" />
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+        #map { height: calc(100vh - 60px); }
+        #status { height: 60px; padding: 10px; background-color: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+    <div id="status"></div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.2/socket.io.js"></script>
+    <script>
+        var socket = io();
+        var map, marcadorMotorista, rotaAtual;
+        var statusElement = document.getElementById('status');
+        var ultimaPosicao = null;
+
+        function inicializarMapa(lat, lng) {
+            map = L.map('map').setView([lat, lng], 13);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+            marcadorMotorista = L.marker([lat, lng]).addTo(map);
+        }
+
+        // Função para buscar a rota pela API OSRM
+        function buscarRota(latInicio, lngInicio, latDestino, lngDestino) {
+            var url = `https://router.project-osrm.org/route/v1/driving/${lngInicio},${latInicio};${lngDestino},${latDestino}?overview=full&geometries=geojson`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    var rota = data.routes[0].geometry;
+
+                    // Remove a rota antiga, se houver
+                    if (rotaAtual) {
+                        map.removeLayer(rotaAtual);
+                    }
+
+                    // Desenhar a nova rota no mapa
+                    rotaAtual = L.geoJSON(rota, {
+                        style: { color: 'blue', weight: 4 }
+                    }).addTo(map);
+                })
+                .catch(err => console.error('Erro ao buscar rota:', err));
+        }
+
+        socket.on('atualizacaoLocalizacao', function(data) {
+            if (!map) {
+                inicializarMapa(data.lat, data.lng);
+            } else {
+                marcadorMotorista.setLatLng([data.lat, data.lng]);
+                map.panTo([data.lat, data.lng]);
+
+                // Se já temos uma última posição, buscar a rota entre ela e a nova posição
+                if (ultimaPosicao) {
+                    buscarRota(ultimaPosicao.lat, ultimaPosicao.lng, data.lat, data.lng);
+                }
+
+                // Atualizar a última posição com a nova
+                ultimaPosicao = { lat: data.lat, lng: data.lng };
+            }
+            statusElement.textContent = `Localização do motorista: ${data.lat.toFixed(6)}, ${data.lng.toFixed(6)}`;
+        });
+
+        socket.on('connect', () => {
+            statusElement.textContent = "Conectado ao servidor. Aguardando atualizações de localização...";
+        });
+
+        socket.on('disconnect', () => {
+            statusElement.textContent = "Desconectado do servidor. Tentando reconectar...";
+        });
+    </script>
+</body>
+</html>

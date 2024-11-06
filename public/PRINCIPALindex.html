@@ -1,0 +1,43 @@
+<?php
+// Inicia a sessão
+session_start();
+
+// Verifica se o usuário está logado (se a sessão 'email' está definida)
+if (!isset($_SESSION['email'])) {
+    // Redireciona para a página de login se o usuário não estiver logado
+    header("Location: login.html");
+    exit();
+}
+?>
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Opções - Pizzaria</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Bem-vindo à Pizzaria XYZ</h1>
+        <p>Escolha uma das opções abaixo:</p>
+    </header>
+    <main>
+        <div class="options">
+            <a href="pizzaria.html" class="option-card pizzaria">
+                <h2>Pizzaria</h2>
+                <p>Gerenciar pedidos e controlar a cozinha</p>
+            </a>
+            <a href="index2.html" class="option-card motorista">
+                <h2>Motorista</h2>
+                <p>Informações e controle para o motorista</p>
+            </a>
+            <a href="rastrearpedido.html" class="option-card rastrear">
+                <h2>Rastrear Pedido</h2>
+                <p>Acompanhe seu pedido em tempo real</p>
+            </a>
+        </div>
+    </main>
+</body>
+</html>
